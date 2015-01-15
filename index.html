@@ -1,0 +1,105 @@
+<html>
+
+<head>
+    <title>Asgard</title>
+</head>
+
+<body>
+    <style>
+        #content-wrap {
+            display: none;
+            height: 250px;
+            width: 310px;
+        }
+        #chat-box {
+            margin-left: 110px;
+            height: 200px;
+            width: 200px;
+            border: 1px solid #ccc;
+            margin-bottom: 5px;
+        }
+        #users {
+            float: left;
+            height: 200px;
+            width: 100px;
+            border: 1px solid #4285f4;
+        }
+    </style>
+
+    <h3>the notty lab</h3>
+    <div id="nick-wrap">
+        <form id="nick-form">
+            <input id="nick" placeholder="type nickname.." />
+            <input type="submit" value="Sign in" />
+        </form>
+        <p><span id="status"></span>
+        </p>
+    </div>
+    <div id="content-wrap">
+        <div id="users"></div>
+        <div id="chat-box"></div>
+        <form id="message-form">
+            <input id="message" />
+            <input type="submit" value="send" />
+
+        </form>
+    </div>
+    <script src="http://code.jquery.com/jquery-latest.min.js"></script>
+
+    <script>
+        jQuery(function ($) {
+            var socket = io.connect();
+
+            var $nickForm = $('#nick-form');
+            var $nick = $('#nick');
+            var $users = $('#users');
+            var $status = $('#status');
+            var $chatBox = $('#chat-box');
+            var $message = $('#message');
+            var $messageForm = $('#message-form');
+            
+            socket.on('get users', function(n){
+               $status.html('online: ' + n); 
+            });
+
+            $nickForm.submit(function (e) {
+                e.preventDefault();
+                socket.emit('new user', $nick.val(), function (d) {
+                    if (d) {
+                        $('#nick-wrap').hide();
+                        $('#content-wrap').show(300);
+                    } else {
+                        $status.html('nick taken').fadeIn(500);   
+                    }
+                });
+                $nick.val('');
+            });
+            
+            socket.on('users', function(d){
+                var names = '';
+                for (i=0; i < d.length; i++){
+                    names += d[i] + '<br />';   
+                }
+                $users.html(names);
+            });
+
+            $messageForm.submit(function (e) {
+                e.preventDefault();
+                socket.emit('send message', $message.val(), function(d){
+                    $chatBox.append(d);   
+                });
+                $message.val('');
+            });
+            socket.on('new message', function (d) {
+                $chatBox.append(d.nick + ': ' + d.msg + '<br>');
+            });
+            
+            socket.on('whisper', function(d){
+               $chatBox.append(d.nick + ': ' + d.msg + '<br>'); 
+            });
+        });
+    </script>
+    <script src="/socket.io/socket.io.js"></script>
+</body>
+
+</html>
